@@ -62,13 +62,15 @@ def get_points_of_interest(src, dest):
     for road in roads:
         #print(road)
             
-        for result in gmaps.places("tourism near "+road, location=src_coord, radius=directions[0]['legs'][0]['distance']['value'])['results']:
+        for result in gmaps.places("tourist spot on "+road, location=src_coord, radius=directions[0]['legs'][0]['distance']['value']/2)['results']:
             #print(result['name'])
             try:
                 points_of_interest[result['name']]=[result['place_id'], result['geometry']['location'].values(), result['rating']]
             except: 
                 continue 	# don't bother with seedy places
            
+    if len(points_of_interest) is 0: return {}
+    
     sum = 0
     for waypoint, waypoint_details in points_of_interest.items():
         sum = sum + waypoint_details[-1]
