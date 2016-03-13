@@ -142,10 +142,8 @@ def put_everything_in_dictionary(coordinates_of_places,points,details):
         users_lat.append(tups[0])
         users_long.append(tups[1])
     for dicts in details:
-        all_details.append(dicts["Name"])
-        all_details.append(dicts["Rating"])
-        all_details.append(dicts["Address"])
-        all_details.append(dicts["Url"])
+        all_details.append([dicts["Name"],dicts["Rating"],
+            dicts["Address"],dicts["Url"]])
 
     dictionary["places_lat"] = places_lat
     dictionary["places_long"] =  places_long

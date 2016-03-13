@@ -10,10 +10,10 @@ In the main section -
         e.g. for i in place_dictionary["places_lat"]:
                 #i - latitude values in float   
         place_dictionary["places_long"] - list of longitudes of all places
-        place_dictionary["users_lat"] - list of latitudes of all users(only 1 value in case of single user).
-        place_dictionary["users_long"] - list of longitudes of all users(only 1 value in case of single user).
-        place_dictionary["all_details"] - list of some details of all the places.   
-            -(important) Order of details is - 'Url','Rating','Name','Address' 
+        place_dictionary["users_lat"] - list of latitudes of all users(1 value if single user).
+        place_dictionary["users_long"] - list of longitudes of all users(1 value if single user).
+        place_dictionary["all_details"] - list of lists 
+                                        -  every list contains details of all the places.   
+            -(important) Order of details is - Name,Rating,Address,Url
             which correspond to a single place. Any of these values may be 'None', 
             in which case the list will have "" against those values.
-            The next four values are for the next place in the list and so on.
