@@ -61,11 +61,14 @@ def get_points_of_interest(src, dest):
     
     for road in roads:
         #print(road)
+        
+        for result in gmaps.places("tourism on "+road, location=src_coord, radius=directions[0]['legs'][0]['distance']['value']//2.5)['results']:
             
-        for result in gmaps.places("tourist spot on "+road, location=src_coord, radius=directions[0]['legs'][0]['distance']['value']/2)['results']:
-            #print(result['name'])
+            if 'tour' in result['name'].lower() or 'travels' in result['name'].lower(): continue
+
             try:
                 points_of_interest[result['name']]=[result['place_id'], result['geometry']['location'].values(), result['rating']]
+                print("hola")
             except: 
                 continue 	# don't bother with seedy places
            
