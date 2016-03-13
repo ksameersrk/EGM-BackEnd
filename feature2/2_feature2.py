@@ -18,9 +18,7 @@ try:
 except:
     print("Run with python2")
 
-#api_key =
-api_key = 'AIzaSyCJg4Ezwp-xEMiQlpeuGJxofCL2HOb031s'
-#using Shiva's API key
+api_key = 'AIzaSyCyr22Z9rtPUYH5QpeBuIPU_2ITgCSBG78'
 
 google_places = GooglePlaces(api_key)   #initialize
 url = 'https://maps.googleapis.com/maps/api/geocode/json?address=__HOLDER__'
@@ -54,21 +52,108 @@ def display_places_names(query_results):
     for places in query_results.places:
         print(places.name)
 
-def display_places_details(query_results):
+
+def get_details_of_all_places(query_results,num_places=5):
+    '''
+        Returns a list of dictionaries.
+        Every dictionary has details about
+            a place.
+    '''
+    count = 0;
+    details = list()
     for place in query_results.places:
+        if(count == num_places):
+            break
         place.get_details()
-        print(place.details)
+        details.append({
+            "Name":str(place.name), "Rating":float(place.rating),
+            "Address":str(place.formatted_address), "Url":str(place.url)
+            })
+        count += 1
 
+    return details
 
-def get_coordinates_of_places(query_results):
+def display_details_of_all_places(details):
+    '''
+        Input - list of dictionaries about
+                details of places.
+        Output - displays details of places.
+    '''
+    for details_dict in details:
+        print(details_dict["Name"])
+        print(details_dict["Rating"])
+        print(details_dict["Address"])
+        print(details_dict["Url"])
+        print(details_dict["Photo_url"])
+        print("*****************")
+
+    print()
+
+def get_details_of_single_place(query_results, place_):
+
+    '''
+        gets details of place specified in the arg.
+    '''
+    details = dict()
+    details["Name"] = query_results.places[place_].name
+    details["Rating"] = query_results.places[place_].rating
+    details["Address"] = query_results.places[place_].formatted_address
+    details["Url"] = query_results.places[place_].url;
+    return details
+
+def display_details_of_single_place(details_dict):
+
+    print(details_dict["Name"])
+    print(details_dict["Rating"])
+    print(details_dict["Address"])
+    print(details_dict["Url"])
+
+def get_coordinates_of_places(query_results, num_places = 5):
 
     #computes the coordinates of places of interest
     #returns a list of tuples
+    count = 0;
     coords_places = list()
     for places in query_results.places:
-        coords_places.append((places.geo_location[u'lat'],places.geo_location[u'lng']))
+        if(count == num_places):
+            break
+        coords_places.append((float(places.geo_location[u'lat']),
+            float(places.geo_location[u'lng'])))
+        count += 1
 
     return coords_places
+
+def put_everything_in_dictionary(coordinates_of_places,points,details):
+
+    '''
+        put everything passed in the list arguments
+        into a dictionary.
+    '''
+    dictionary = dict()
+    places_lat = list()
+    places_long = list()
+    users_lat = list()
+    users_long = list()
+    all_details = list()
+    for tups in coordinates_of_places:
+        places_lat.append(tups[0])
+        places_long.append(tups[1])
+    for tups in points:
+        users_lat.append(tups[0])
+        users_long.append(tups[1])
+    for dicts in details:
+        all_details.append(dicts["Name"])
+        all_details.append(dicts["Rating"])
+        all_details.append(dicts["Address"])
+        all_details.append(dicts["Url"])
+
+    dictionary["places_lat"] = places_lat
+    dictionary["places_long"] =  places_long
+    dictionary["users_lat"] = users_lat
+    dictionary["users_long"] = users_long
+    dictionary["all_details"] = all_details
+
+    return dictionary
 
 if __name__ == "__main__":
     num_users = int(input("Enter the number of users."))
@@ -77,12 +162,27 @@ if __name__ == "__main__":
 
     elif(num_users == 1):
         user_location = 'Connaught Place, New Delhi'
+        search_radius = int(input("Enter the radius for search"))
         query_results = google_places.nearby_search(
-                location=user_location, radius=200000,
+                location=user_location, radius=search_radius,
                 types=[types.TYPE_FOOD]
                 )
+
+        locations = list()
+        locations.append(user_location)
+
+	coordinates_of_places = get_coordinates_of_places(query_results,num_places=3)
+        points = get_coordinates_of_users(locations)
+        details = get_details_of_all_places(query_results,num_places=3)
+
+        #place_dictionary is a dict of everything about all
+        # the places
+        place_dictionary = put_everything_in_dictionary(coordinates_of_places,
+                points,details)
+        print(place_dictionary)
+
+        #display_details_of_all_places(details)
         #display_places_names(query_results)
-        #coordinates_of_places = get_coordinates_of_places(query_results)
         #display_places_details(query_results)
 
     elif(num_users>1):
@@ -100,10 +200,18 @@ if __name__ == "__main__":
 
         #display_places_names(query_results)
 
-
         #coordinates_of_places is a list of tuples
         #first arg of tuple is lat
         #second arg is long
-        coordinates_of_places = get_coordinates_of_places(query_results)
-        #print(coordinates_of_places)
+        coordinates_of_places = get_coordinates_of_places(query_results,num_places=3)
+        details = get_details_of_all_places(query_results,num_places=3)
+        place_dictionary = put_everything_in_dictionary(coordinates_of_places,
+                points,details)
+        print(place_dictionary)
+
+
+
+
+
+
 
