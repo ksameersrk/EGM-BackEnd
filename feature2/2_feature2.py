@@ -52,38 +52,6 @@ def display_places_names(query_results):
     for places in query_results.places:
         print(places.name)
 
-'''
-def get_details_of_all_places(query_results):
-
-        Returns a list of dictionaries.
-        Every dictionary has details about
-            a place.
-
-    details = list()
-    counter = 1
-    for place in query_results.places:
-        if(counter == 2):
-            break
-        photo_urls = list()
-        ct = 1
-        for photo in place.photos:
-            if(ct == 2):
-                break
-            photo.get(maxheight=500)
-            photo_urls.append(photo.url)
-        print("outside photos loop")
-        place.get_details()
-        details.append({
-            "Name":place.name, "Rating":place.rating,
-            "Address":place.formatted_address, "Url":place.url,
-            "Photo_url":photo_urls
-            })
-    return details
-
-    #for place in query_results.places:
-    #    print(type(place.photos))
-
-'''
 
 def get_details_of_all_places(query_results,num_places=5):
     '''
