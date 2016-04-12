@@ -70,7 +70,9 @@ def get_points_of_interest(src_coord, dest_coord):
             continue
         try:
             if result['rating'] >= 4.0:
-                points_of_interest[result['name']] = [result['place_id'], result['geometry']['location'].values(), result['rating']]
+                #points_of_interest[result['name']] = [result['place_id'], result['geometry']['location'].values(), result['rating']]
+                points_of_interest[result['name']] = result
+                
         except: 
             continue    # don't bother with seedy places
     
