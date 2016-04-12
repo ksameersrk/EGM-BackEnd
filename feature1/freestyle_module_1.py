@@ -60,6 +60,8 @@ def get_points_of_interest(src_coord, dest_coord):
 
     if places_json_result["status"] != "OK":
         return {}
+    
+    points_of_interest = {}
 
     results = places_json_result['results']
 
