@@ -19,25 +19,25 @@ except:
     print('Run with python2.7')
     exit()
 
-Coordinates = namedtuple('coordinate', ['lat', 'lng'])
+Coordinates = namedtuple('coordinate', ['lat', 'lng']) # initialise a pesudo class for handling latlng coordinates
 
-API_KEY = 'AIzaSyCQd3oHe34SNelQzLuT6KSdA3ajCqt-gp8'
+API_KEY = 'AIzaSyCQd3oHe34SNelQzLuT6KSdA3ajCqt-gp8' # API key - use it, don't abuse it
 
-URL_dir = 'https://maps.googleapis.com/maps/api/directions/json?origin=__ORIGIN__&destination=__DEST__&key=%s' % API_KEY  # template URL string
+URL_dir = 'https://maps.googleapis.com/maps/api/directions/json?origin=__SRC__&destination=__DEST__&key=%s' % API_KEY  # template URL string for quering the directions API
 
-URL_geo = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=__LATLNG__&result_type=administrative_area_level_1&key=%s' %API_KEY
+URL_geo = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=__LATLNG__&result_type=administrative_area_level_1&key=%s' %API_KEY  # template URL string for quering the geocoding API
 
 gmaps = googlemaps.Client(API_KEY)  # initialize client
 
 
 def get_points_of_interest(src_coord, dest_coord):
-    
+    ''' Return major points of interest and rest stops between a given source and destination '''
     src_coord = Coordinates(*src_coord)
     dest_coord = Coordinates(*dest_coord)
     
-    #print(URL_dir.replace('__ORIGIN__', googlemaps.convert.latlng(src_coord)).replace('__DEST__', googlemaps.convert.latlng(dest_coord)))
+    #print(URL_dir.replace('__SRC__', googlemaps.convert.latlng(src_coord)).replace('__DEST__', googlemaps.convert.latlng(dest_coord)))
     
-    route_json_result = eval(urllib2.urlopen(URL_dir.replace('__ORIGIN__', googlemaps.convert.latlng(src_coord)).replace('__DEST__', googlemaps.convert.latlng(dest_coord))).read())
+    route_json_result = eval(urllib2.urlopen(URL_dir.replace('__SRC__', googlemaps.convert.latlng(src_coord)).replace('__DEST__', googlemaps.convert.latlng(dest_coord))).read())
 
     if route_json_result["status"] != "OK":
         return {}
@@ -78,6 +78,7 @@ def get_points_of_interest(src_coord, dest_coord):
 
 
 def get_midpoint(coord_1, coord_2):
+    ''' Finds and returns the coordinates of the midpoint between two points '''
     d_lng =  math.radians(coord_2.lng - coord_1.lng)
 
     lat_1, lng_1 = map(math.radians, coord_1)
@@ -92,9 +93,10 @@ def get_midpoint(coord_1, coord_2):
     #print(list(map(math.degrees, [lat_3, lng_3])))
 
     return Coordinates(*map(math.degrees, [lat_3, lng_3]))
-
-
+    
+    
 def get_distance(coord_1, coord_2):
+    ''' Computes the great-circle distance between two coordinates '''
     t_coord_1 = Coordinates(*map(math.radians, coord_1))
     t_coord_2 = Coordinates(*map(math.radians, coord_2))
 
@@ -105,8 +107,9 @@ def get_distance(coord_1, coord_2):
 
 
 if __name__=="__main__":
-    user_source = OrderedDict({u'lat': 12.9715987, u'lng': 77.5945627})
-    user_dest = {u'lat': 12.2958104, u'lng': 76.6393805}
+    ''' For testing '''
+    user_source = OrderedDict({u'lat': 12.9715987, u'lng': 77.5945627}) # Bangalore
+    user_dest = OrderedDict({u'lat': 12.2958104, u'lng': 76.6393805}) # Mysore
     
     pprint(get_points_of_interest(user_source.values(), user_dest.values()))
 
