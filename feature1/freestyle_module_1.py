@@ -1,101 +1,117 @@
 '''
-    API Key: Shiva: AIzaSyB_djwAiUd0Vt3gQgnPxR37gjenE0j3dTU
-            Sharon: AIzaSyAZ0yEBve1U580KqocYg-4YwbjoieoriYY
-    Part 1
-    Retrieve source and destination from front end
-    Find places of interest between source and destination and retrieve their location using Client.geocode() - will get lat, long of that place
-    
-    Part 2
-    Compute some logically feasable paths between the source and destination having the places of interest as intermediate points
-    
-    Part 3
-    For each path
-    Convert the tuples of lat - long to a road route: use Client.snap_to_road()
-    Return this list of paths to the front end
-    
     04/03/16
-    Module 1
-    Get src destination
+    FEATURE 1 (MODULE 1)
+    Get src - destination
     Return places
-    
-    Module 2
-    Get places
-    Return route
 '''
 
-import googlemaps, sys, re
+
+from collections import OrderedDict, namedtuple
 from pprint import pprint
+
+import googlemaps
+import math
+import sys
 
 try:
     import urllib2
 except:
-    print('Run with python2')
+    print('Run with python2.7')
     exit()
 
-api_key='AIzaSyCJg4Ezwp-xEMiQlpeuGJxofCL2HOb031s'
+Coordinates = namedtuple('coordinate', ['lat', 'lng'])
 
-url='https://maps.googleapis.com/maps/api/geocode/json?address=__HOLDER__&key=%s' %api_key
+API_KEY = 'AIzaSyCQd3oHe34SNelQzLuT6KSdA3ajCqt-gp8'
 
-gmaps=googlemaps.Client(api_key) # initialize client
+URL_dir = 'https://maps.googleapis.com/maps/api/directions/json?origin=__ORIGIN__&destination=__DEST__&key=%s' % API_KEY  # template URL string
+
+URL_geo = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=__LATLNG__&result_type=administrative_area_level_1&key=%s' %API_KEY
+
+gmaps = googlemaps.Client(API_KEY)  # initialize client
 
 
-def url_translate(address):
-   
-    return url.replace('__HOLDER__', re.sub(" ", "+", address))
+def get_points_of_interest(src_coord, dest_coord):
+    
+    src_coord = Coordinates(*src_coord)
+    dest_coord = Coordinates(*dest_coord)
+    
+    #print(URL_dir.replace('__ORIGIN__', googlemaps.convert.latlng(src_coord)).replace('__DEST__', googlemaps.convert.latlng(dest_coord)))
+    
+    route_json_result = eval(urllib2.urlopen(URL_dir.replace('__ORIGIN__', googlemaps.convert.latlng(src_coord)).replace('__DEST__', googlemaps.convert.latlng(dest_coord))).read())
+
+    if route_json_result["status"] != "OK":
+        return {}
+    
+    bounds = route_json_result["routes"][0]["bounds"]
+    bounds_northeast, bounds_southwest = Coordinates(*OrderedDict(bounds["northeast"]).values()), Coordinates(*OrderedDict(bounds["southwest"]).values())
+    center = get_midpoint(bounds_northeast, bounds_southwest)
+    radius = get_distance(center, bounds_northeast)
+    
+    #print(URL_geo.replace('__LATLNG__', googlemaps.convert.latlng(list(center))))
+    
+    place_bias_json_result = eval(urllib2.urlopen(URL_geo.replace('__LATLNG__', googlemaps.convert.latlng(list(center)))).read())
+
+    if place_bias_json_result['status'] != "OK":
+        return {}
+
+    place_bias = place_bias_json_result['results'][0]['address_components'][0]['long_name']
+
+    places_json_result = gmaps.places("tourism, restaurants " + place_bias , location=list(src_coord), radius=radius)
+
+    if places_json_result["status"] != "OK":
+        return {}
+
+    results = places_json_result['results']
+
+    for result in results:
+        if 'tour' in result['name'].lower() or 'travels' in result['name'].lower(): 
+            continue
+        try:
+            if result['rating'] >= 4.0:
+                points_of_interest[result['name']] = [result['place_id'], result['geometry']['location'].values(), result['rating']]
+        except: 
+            continue    # don't bother with seedy places
+    
+    #print(points_of_interest)
+
+    return points_of_interest
 
 
-def get_points_of_interest(src, dest):    
-   
-    src=eval(urllib2.urlopen(url_translate(src)).read())
-    src_coord=src['results'][0]['geometry']['location'].values()
-    
-    dest=eval(urllib2.urlopen(url_translate(dest)).read())
-    dest_coord=dest['results'][0]['geometry']['location'].values()
-    
-    roads=set()
-    points_of_interest={}
-    
-    directions=gmaps.directions(src_coord, dest_coord)
-    for s in directions[0]['legs'][0]['steps']:
-        roads=roads.union(set(re.findall(r"<b>(.*?)</b>", s['html_instructions'])) - {'north', 'south', 'east', 'west', 'left', 'right'})
-    
-    for road in roads:
-        #print(road)
-        
-        for result in gmaps.places("tourism on "+road, location=src_coord, radius=directions[0]['legs'][0]['distance']['value']//2.5)['results']:
-            
-            if 'tour' in result['name'].lower() or 'travels' in result['name'].lower(): continue
+def get_midpoint(coord_1, coord_2):
+    d_lng =  math.radians(coord_2.lng - coord_1.lng)
 
-            try:
-                points_of_interest[result['name']]=[result['place_id'], result['geometry']['location'].values(), result['rating']]
-                print("hola")
-            except: 
-                continue 	# don't bother with seedy places
-           
-    if len(points_of_interest) is 0: return {}
+    lat_1, lng_1 = map(math.radians, coord_1)
+    lat_2 = math.radians(coord_2.lat)
+
+    x = math.cos(lat_2) * math.cos(d_lng)
+    y = math.cos(lat_2) * math.sin(d_lng)
     
-    sum = 0
-    for waypoint, waypoint_details in points_of_interest.items():
-        sum = sum + waypoint_details[-1]
-    
-    avg = sum // len(points_of_interest)
-    
-    final_result_dict = {}
-    
-    for waypoint, waypoint_details in points_of_interest.items():
-        if waypoint_details[-1] >= avg:
-            final_result_dict[waypoint]=waypoint_details
-    
-    return final_result_dict
+    lat_3 = math.atan2(math.sin(lat_1) + math.sin(lat_2), math.sqrt((math.cos(lat_1) + x) * (math.cos(lat_1) + x) + y**2))
+    lng_3 = lng_1 + math.atan2(y, math.cos(lat_1) + x)
+
+    #print(list(map(math.degrees, [lat_3, lng_3])))
+
+    return Coordinates(*map(math.degrees, [lat_3, lng_3]))
+
+
+def get_distance(coord_1, coord_2):
+    t_coord_1 = Coordinates(*map(math.radians, coord_1))
+    t_coord_2 = Coordinates(*map(math.radians, coord_2))
+
+    d_lat, d_lng = (t_coord_2.lat - t_coord_1.lat), (t_coord_2.lng - t_coord_1.lng) 
+    temp = math.sin(d_lat / 2)**2 + math.cos(t_coord_1.lat) * math.cos(t_coord_2.lat) * math.sin(d_lng / 2)**2
+
+    return 6373.0 * (2 * math.atan2(math.sqrt(temp), math.sqrt(1 - temp)))
+
 
 if __name__=="__main__":
-    #input - source, destination
-    #find average rating
-    #pull out places with rating greater than the average
-    #output - list of places
-
-    user_source = 'Bangalore'
-    user_dest = 'Mysore'
+    user_source = OrderedDict({u'lat': 12.9715987, u'lng': 77.5945627})
+    user_dest = {u'lat': 12.2958104, u'lng': 76.6393805}
     
-    pprint(get_points_of_interest(user_source, user_dest))
+    pprint(get_points_of_interest(user_source.values(), user_dest.values()))
+
+
+
+
+
 
