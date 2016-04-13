@@ -12,7 +12,6 @@
     
 '''
 
-
 from collections import OrderedDict, namedtuple
 from pprint import pprint
 
@@ -27,24 +26,32 @@ except:
     print('Run with python2.7')
     exit()
 
-Coordinates = namedtuple('coordinate', ['lat', 'lng']) # initialise a pesudo class for handling latlng coordinates
-
-API_KEY = 'AIzaSyCQd3oHe34SNelQzLuT6KSdA3ajCqt-gp8' # API key - use it, don't abuse it
-
-URL_dir = 'https://maps.googleapis.com/maps/api/directions/json?origin=__SRC__&destination=__DEST__&key=%s' % API_KEY  # template URL string for quering the directions API
-
-URL_geo = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=__LATLNG__&result_type=administrative_area_level_1&key=%s' %API_KEY  # template URL string for quering the geocoding API
+Coordinates = namedtuple('Coordinate', ['lat', 'lng']) # initialise a pesudo class for handling latlng coordinates
 
 ''' Defining public variables '''
+API_KEY = 'AIzaSyCQd3oHe34SNelQzLuT6KSdA3ajCqt-gp8' # API key - use it, don't abuse it
+URL_dir = 'https://maps.googleapis.com/maps/api/directions/json?origin=__SRC__&destination=__DEST__&key=%s' % API_KEY  # template URL string for quering the directions API
+URL_rev_geo = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=__LATLNG__&result_type=administrative_area_level_1&key=%s' %API_KEY  # template URL string for quering the geocoding API
+URL_geo = 'https://maps.googleapis.com/maps/api/geocode/json?address=__ADD__&key=%s' %API_KEY
 gmaps = googlemaps.Client(API_KEY)  # initialize client
-# = None, None
-#route_json_result = None
 
 
-def get_points_of_interest(src_coord, dest_coord):
+def get_geocoded_address(address):
+	geocoded_json_result = eval(urllib2.urlopen(URL_geo.replace('__ADD__', address.replace(" ", "+")).read()))
+
+	if geocoded_json_result['status'] == "ZERO_RESULTS":
+		raise Exception("No valid latlng coordinates for given address")	
+	
+	elif geocoded_json_result['status'] != "OK":
+		raise Exception("Error during geocoding")
+
+	return OrderedDict(geocoded_json_result['results'][0]['geometry']['location']).values()
+ 
+    
+def get_points_of_interest(source, dest):
     ''' Return major points of interest and rest stops between a given source and destination '''
-    src_coord = Coordinates(*src_coord)
-    dest_coord = Coordinates(*dest_coord)
+    src_coord = Coordinates(*get_geocoded_address(source))
+    dest_coord = Coordinates(*get_geocoded_address(dest))
     public_src_coord = copy.deepcopy(src_coord)
     public_dest_coord = copy.deepcopy(dest_coord)
     
@@ -62,7 +69,7 @@ def get_points_of_interest(src_coord, dest_coord):
     
     #print(URL_geo.replace('__LATLNG__', googlemaps.convert.latlng(list(center))))
     
-    place_bias_json_result = eval(urllib2.urlopen(URL_geo.replace('__LATLNG__', googlemaps.convert.latlng(list(center)))).read())
+    place_bias_json_result = eval(urllib2.urlopen(URL_rev_geo.replace('__LATLNG__', googlemaps.convert.latlng(list(center)))).read())
 
     if place_bias_json_result['status'] != "OK":
         return {}
@@ -92,10 +99,13 @@ def get_points_of_interest(src_coord, dest_coord):
     return points_of_interest
 
 
-def get_best_route(src_coord, dest_coord, waypoints=None):
+def get_best_route(source, dest, waypoints=None):
     ''' Input: Assumes that the JSON dictionary sent from get_points_of_interest() is returned back in the same format
         Output: Returns the original route if no waypoints have been specified, otherwise queries the google server for a new route passing through all specified waypoints 
     '''
+    src_coord = Coordinates(*get_geocoded_address(source))
+    dest_coord = Coordinates(*get_geocoded_address(dest))
+    
     if wayoints == None or len(waypoints) == 0: 
         return eval(urllib2.urlopen(URL_geo.replace('__LATLNG__', googlemaps.convert.latlng(list(center)))).read())
 
@@ -144,11 +154,11 @@ def get_distance(coord_1, coord_2):
 
 
 if __name__=="__main__":
-    ''' For testing '''
-    user_source = OrderedDict({u'lat': 12.9715987, u'lng': 77.5945627}) # Bangalore
-    user_dest = OrderedDict({u'lat': 12.2958104, u'lng': 76.6393805}) # Mysore
-    
-    pprint(get_points_of_interest(user_source.values(), user_dest.values()))
+	''' For testing '''
+	#user_source = OrderedDict({u'lat': 12.9715987, u'lng': 77.5945627}) # Bangalore
+    #user_dest = OrderedDict({u'lat': 12.2958104, u'lng': 76.6393805}) # Mysore
+	pprint(get_points_of_interest("Bangalore, Karnataka, India", "Mysore, Karnataka, India"))
+
 
 
 
